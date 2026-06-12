@@ -17,6 +17,9 @@ PROJECT_DIR = Path(r"D:\Seismic_Monitoring_AI")
 MODEL_PATH = PROJECT_DIR / "models" / "best_seismic_model_v3.pth"
 EXAMPLES_DIR = PROJECT_DIR / "examples"
 
+st.write("PROJECT_DIR =", PROJECT_DIR)
+st.write("MODEL_PATH =", MODEL_PATH)
+
 # ==================================================
 # PAGE CONFIG
 # ==================================================
