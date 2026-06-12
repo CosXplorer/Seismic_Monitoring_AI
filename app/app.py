@@ -110,6 +110,10 @@ def load_model():
     model.eval()
     return model
 
+st.write("Current file:", __file__)
+st.write("Project dir:", PROJECT_DIR)
+st.write("Model path:", MODEL_PATH)
+st.write("Model exists:", MODEL_PATH.exists())
 
 model = load_model()
 st.success("CNN Model Loaded Successfully")
