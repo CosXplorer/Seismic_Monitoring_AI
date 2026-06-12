@@ -13,12 +13,10 @@ from pathlib import Path
 # PATHS
 # ==================================================
 
-PROJECT_DIR = Path(r"D:\Seismic_Monitoring_AI")
+# This works on Streamlit Cloud and on your local machine
+PROJECT_DIR = Path(__file__).resolve().parent.parent
 MODEL_PATH = PROJECT_DIR / "models" / "best_seismic_model_v3.pth"
 EXAMPLES_DIR = PROJECT_DIR / "examples"
-
-st.write("PROJECT_DIR =", PROJECT_DIR)
-st.write("MODEL_PATH =", MODEL_PATH)
 
 # ==================================================
 # PAGE CONFIG
@@ -41,6 +39,13 @@ st.markdown(
     - Earthquake
     """
 )
+
+# Optional debug info for deployment
+with st.sidebar.expander("Debug Info", expanded=False):
+    st.write("Current file:", __file__)
+    st.write("Project dir:", PROJECT_DIR)
+    st.write("Model path:", MODEL_PATH)
+    st.write("Model exists:", MODEL_PATH.exists())
 
 # ==================================================
 # LABEL MAP
@@ -103,23 +108,29 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 @st.cache_resource
 def load_model():
     if not MODEL_PATH.exists():
-        raise FileNotFoundError(
-            f"Model file not found at: {MODEL_PATH}"
-        )
+        return None
 
     model = SeismicCNN().to(device)
-    state_dict = torch.load(MODEL_PATH, map_location=device)
-    model.load_state_dict(state_dict)
-    model.eval()
-    return model
 
-st.write("Current file:", __file__)
-st.write("Project dir:", PROJECT_DIR)
-st.write("Model path:", MODEL_PATH)
-st.write("Model exists:", MODEL_PATH.exists())
+    try:
+        state_dict = torch.load(MODEL_PATH, map_location=device)
+        model.load_state_dict(state_dict)
+        model.eval()
+        return model
+    except Exception as e:
+        st.error(f"Failed to load model: {e}")
+        return None
+
 
 model = load_model()
-st.success("CNN Model Loaded Successfully")
+
+if model is not None:
+    st.success("CNN Model Loaded Successfully")
+else:
+    st.warning(
+        "Model file was not found or could not be loaded. "
+        "The app will open, but classification will not work until the model is available."
+    )
 
 # ==================================================
 # SIDEBAR NAVIGATION
@@ -157,13 +168,15 @@ def preprocess_window(window):
 
 
 def predict_window(window):
+    if model is None:
+        raise RuntimeError("Model is not loaded.")
+
     window = preprocess_window(window)
     window = torch.tensor(window, dtype=torch.float32)
 
     # (2000,) -> (1, 1, 2000)
     window = window.unsqueeze(0)
     window = window.unsqueeze(0)
-
     window = window.to(device)
 
     with torch.no_grad():
@@ -263,6 +276,12 @@ if page == "Home":
 # ==================================================
 
 elif page == "Classify Files":
+
+    if model is None:
+        st.error(
+            f"Cannot classify because the model file is missing or failed to load:\n\n{MODEL_PATH}"
+        )
+        st.stop()
 
     uploaded_files = st.file_uploader(
         "Upload MiniSEED Files",
@@ -414,10 +433,6 @@ elif page == "Model Performance":
         """
     )
 
-    # =====================================
-    # Top Metrics
-    # =====================================
-
     col1, col2, col3, col4 = st.columns(4)
 
     with col1:
@@ -433,10 +448,6 @@ elif page == "Model Performance":
         st.metric("Macro F1", "67%")
 
     st.markdown("---")
-
-    # =====================================
-    # Class-wise Metrics
-    # =====================================
 
     st.subheader("Class-wise Performance")
 
@@ -471,10 +482,6 @@ elif page == "Model Performance":
     st.dataframe(performance_df, use_container_width=True)
 
     st.markdown("---")
-
-    # =====================================
-    # Confusion Matrix
-    # =====================================
 
     st.subheader("Confusion Matrix")
 
@@ -518,10 +525,6 @@ elif page == "Model Performance":
 
     st.markdown("---")
 
-    # =====================================
-    # Training Summary
-    # =====================================
-
     st.subheader("Training Summary")
 
     training_df = pd.DataFrame({
@@ -554,6 +557,12 @@ elif page == "Model Performance":
 elif page == "Example Events":
 
     st.header("📚 Example Events")
+
+    if model is None:
+        st.error(
+            f"Cannot show example classifications because the model file is missing or failed to load:\n\n{MODEL_PATH}"
+        )
+        st.stop()
 
     example = st.selectbox(
         "Choose Event",
