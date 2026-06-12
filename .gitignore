@@ -1,0 +1,30 @@
+# Virtual Environments
+.venv/
+venv/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Jupyter
+.ipynb_checkpoints/
+
+# IDE
+.vscode/
+.idea/
+
+# OS Files
+.DS_Store
+Thumbs.db
+
+# Large project folders (don't upload raw data)
+data/
+
+# Training notebooks (optional)
+#notebooks/
+
+# Temporary files
+*.tmp
+*.log
